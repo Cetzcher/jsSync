@@ -4,7 +4,11 @@ import { ISyncProvider } from "./SyncProvider";
 // @flow
 
 // declare this as the type
-export const PRIMITIVE = "PRIMITIVE"
+type LateBind = "LATE_BIND"
+type Primitve = "PRIMITIVE"
+export const PRIMITIVE : Primitve = "PRIMITIVE"
+export const LATE_BIND : LateBind = "LATE_BIND"
+
 
 /**
  * @example
@@ -16,13 +20,13 @@ export const PRIMITIVE = "PRIMITIVE"
  * }
  * this writes to the underlying _value when syncing.
  */
-export function sync(type? : mixed, attrName?: string) {
+export function sync(type? : ISyncable<mixed> | Primitve | LateBind, attrName?: string) {
     // decorator to indicate an attribute can be synced
     return function decorator(target: any, key: any, descriptor: any) {
         if (!target.syncItems)
             target.syncItems = {}
         const stype = type || PRIMITIVE
-        target.syncItems[key] = {propName: attrName || key, type: type }
+        target.syncItems[key] = {propName: attrName || key, type: type, allowLateBinding: type === LATE_BIND}
         return descriptor
     }
 }

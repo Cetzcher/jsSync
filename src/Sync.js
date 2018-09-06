@@ -1,5 +1,5 @@
 import { ISyncProvider } from "./SyncProvider";
-import { PRIMITIVE } from "./SyncDecorators";
+import { PRIMITIVE, LATE_BIND } from "./SyncDecorators";
 
 // @flow
 
@@ -71,6 +71,8 @@ export function createSyncData(aObject: Object): SyncStructure[] {
             const current = items[item]
             const itemType = current.type
             let value = aObject[current.propName]
+            if(itemType === LATE_BIND) 
+                throw new Error("All late bound members must be bound before creating sync data")
             if(isSyncable(value)) {
                 value = value.toSyncData()
             }
@@ -85,9 +87,8 @@ export function createSyncData(aObject: Object): SyncStructure[] {
 export function syncTo(obj: Object, syncData: SyncStructure[]): void {
     // syncs the given structure to the object
     const proto = Object.getPrototypeOf(obj)
-    console.log("calling sync to on", obj.constructor.name, syncData)
     const items = proto.syncItems;
-    if (!items)
+    if (!items || !syncData)
         return
     syncData.forEach(
         elem => {
@@ -95,7 +96,10 @@ export function syncTo(obj: Object, syncData: SyncStructure[]): void {
             const givenName = current.propName
             const itemType = current.type
             let elemValue = elem.value
-            if (itemType !== PRIMITIVE) {
+            if (itemType === LATE_BIND)
+                throw new Error("All late bound members must be bound before syncing")
+            
+            if (itemType !== PRIMITIVE && elemValue) {
                 // if the element type is not a primitive, create the element via the sync provider
                 // first get the sync provider on the element
                 const syncProvider : ISyncProvider = Object.getPrototypeOf(obj).syncProvider
@@ -117,14 +121,29 @@ export function syncTo(obj: Object, syncData: SyncStructure[]): void {
                 }
                 elemValue = objInstance
             }
-            if (obj[givenName] !== undefined)
-                obj[givenName] = elemValue
-            else
-                throw new Error("Sync error, tried to access undefined property with given name " + givenName)
+            obj[givenName] = elemValue        
         }
     )
 }
 
+export function lateBindMember<T : Object>(obj: Object, name : string, type: ISyncable<T>) {
+    const proto = Object.getPrototypeOf(obj)
+    if(!proto.syncItems || !isSyncable(obj))
+        throw new Error("Object is not syncable, is it annotated with @autoSync?")
+    const syncElem = proto.syncItems[name]
+    if(!syncElem.allowLateBinding)
+        return
+    if(syncElem) {
+        if(syncElem.type === LATE_BIND) {
+            syncElem.type = type
+            syncElem.allowLateBinding = false
+        } else {
+            throw new Error("The member " + name + " was not correctly annotated for late binding you need to use @sync LATE_BIND")
+        }
+    } else {
+        throw new Error("the member " + name + " was not found on the object with name: " + obj.constructor.name + " check for spelling errors" )
+    }
+}
 
 export function syncListItems<T : Object>(authority: ISyncable<T>, clients: ISyncable<T>[]) {
     const syncData = authority.toSyncData()

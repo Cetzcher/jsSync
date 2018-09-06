@@ -5,8 +5,9 @@
   "main": "lib/index.js",
   "scripts": {
     "flow": "flow",
+    "babel": "babel",
     "build": "babel src/ -d lib/",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha --require babel-core/register ./test/**/*.spec.js"
   },
   "repository": {
     "type": "git",
@@ -20,6 +21,11 @@
     "deserialization",
     "decorator"
   ],
+  "babel": {
+    "presets": [
+      "flow"
+    ]
+  },
   "author": "Pierre Rieger",
   "license": "ISC",
   "bugs": {
@@ -30,6 +36,9 @@
     "babel-plugin-transform-decorators-legacy": "^1.3.5",
     "babel-plugin-transform-es2015-modules-commonjs": "^6.26.2",
     "babel-preset-flow": "^6.23.0",
-    "flow-bin": "^0.80.0"
+    "chai": "^4.1.2",
+    "chai-things": "^0.2.0",
+    "flow-bin": "^0.80.0",
+    "mocha": "^5.2.0"
   }
 }
