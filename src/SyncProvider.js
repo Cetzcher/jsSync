@@ -5,6 +5,9 @@ export interface ISyncProvider {
     create(name: string, ...args: any): mixed;
 }
 
+/**
+ * provides a mapping of types to instances.
+ */
 export class SyncProvider implements ISyncProvider {
 
     ctors: { [key: string]: Function }

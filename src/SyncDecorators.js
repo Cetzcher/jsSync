@@ -1,40 +1,63 @@
 import { syncTo, createSyncData, isSyncableType, ISyncable } from "./Sync";
-import { ISyncProvider } from "./SyncProvider";
+import { ISyncProvider, SyncProvider } from "./SyncProvider";
 
 // @flow
 
 // declare this as the type
 type LateBind = "LATE_BIND"
-type Primitve = "PRIMITIVE"
-export const PRIMITIVE : Primitve = "PRIMITIVE"
+type Primitive = "PRIMITIVE"
+export const PRIMITIVE : Primitive = "PRIMITIVE"
 export const LATE_BIND : LateBind = "LATE_BIND"
-export type AcceptableSyncVals = LateBind | Primitve | ISyncable<mixed> 
+export type AcceptableSyncVals = LateBind | Primitive | ISyncable<mixed> 
 
 /**
- * @example
- * class Example {
- *  _value : number
- *  @sync(PRIMITIVE, "_value")
- *  get value() { return this.number }
- * 
+ * decorates class functions, for example when applying the decorator to a getter like:
+ * @example 
+ * @sync(PRIMITIVE)
+ * get name()  {... }
+ * will mark the getter for sync, you also need to provide a setter
+ * @param {Object | string} type either a syncable object or "LATE_BIND" or "PRIMITIVE" use PRIMITIVE for built-in types like
+ * Number, String, booleans, etz.
+ * use LATE_BIND for types that are bound in the constructor, see lateBindMember(...)
+ * otherwise specify the type you want to sync to.
+ * ```js
+ * @autoSync(syncProvider) class S implements ISyncable {...}
+ * @autoSync(syncProvider) class Syn2 implements ISyncable {
+ *  ...
+ *     @sync(S) get s() { ... }
+ *     set s(val) { ... }
+ *  ...
  * }
- * this writes to the underlying _value when syncing.
+ * ```
+ * 
  */
-export function sync(type? : AcceptableSyncVals, attrName?: string) {
+export function sync(type? : AcceptableSyncVals) {
     // decorator to indicate an attribute can be synced
     return function decorator(target: any, key: any, descriptor: any) {
         if (!target.syncItems)
             target.syncItems = {}
         const stype = type || PRIMITIVE
-        target.syncItems[key] = {propName: attrName || key, type: type, allowLateBinding: type === LATE_BIND}
+        target.syncItems[key] = {propName: key, type: type, allowLateBinding: type === LATE_BIND}
         return descriptor
     }
 }
 
+/**
+ * shorthand for sync(PRIMITIVE)
+ */
 export const syncPrimitive = sync(PRIMITIVE)
 
+/**
+ * helper value for implementing methods from ISyncable to make typechecking shut up as well as give a hint that these methods
+ * are implemented by autoImplement, see below
+ */
 export const DECORATED: any = undefined
 
+/**
+ * Automatically implements prototype.syncFrom, prototype.toSyncData and prototype.isSyncInProgress
+ * this is done by calling the syncTo and create sync data functions and supplying the this arg
+ * @param {*} prototype 
+ */
 export function autoImplementSyncable(prototype : any) {
     const define = (name : string, func : Function) => {
         const desc = Object.getOwnPropertyDescriptor(prototype, name)
@@ -60,6 +83,12 @@ export function autoImplementSyncable(prototype : any) {
     })
 }
 
+/**
+ * class-level decorator, this automatically implements all necessary member functions of ISyncable
+ * and also adds the class to the syncProvider given as the first argument
+ * @param {ISyncProvider} provider the sync provider to use for syncing
+ * ```js @autoSync(syncProvider) class S { ... } ```
+ */
 export function autoSync(provider?: ISyncProvider): Function {
     return function (ClassReference: Function): Function {
         autoImplementSyncable(ClassReference.prototype)
@@ -77,3 +106,5 @@ export function autoSync(provider?: ISyncProvider): Function {
         return ClassReference
     }
 }
+
+autoSync()
