@@ -7,7 +7,7 @@ Chai.use(require("chai-things"))
 
 import { describe, it, before } from "mocha"
 
-import{sync, PRIMITIVE, SyncProvider, autoSync, ISyncable, createSyncData, DECORATED, IAutoSyncable, isSyncable, isSyncableType} from "../src"
+import{sync, PRIMITIVE, SyncProvider, autoSync, ISyncable, createSyncData, DECORATED, IAutoSyncable, isSyncable, isSyncableType, LATE_BIND, lateBindMember} from "../src"
 
 const syncProvider = new SyncProvider()
 
@@ -24,6 +24,8 @@ class Complex implements IAutoSyncable<any> {
     set real(r) { this._real = r }
     set imaginary(i) { this._imaginary = i }
 
+    getSum() { return this.real + this.imaginary}
+
     constructor() {
         this.imaginary = 0
         this.real = 0
@@ -35,6 +37,7 @@ class Complex implements IAutoSyncable<any> {
 
 }
 
+// TODO: sync(TYPE, NAME) // name is broken
 @autoSync(syncProvider)
 class ADataClass implements IAutoSyncable{
 
@@ -45,7 +48,7 @@ class ADataClass implements IAutoSyncable{
 
     @sync(PRIMITIVE)
     get numval() { return this._numval }
-    @sync(PRIMITIVE, "_stringval")
+    @sync(PRIMITIVE)
     get stringval() { return this._stringval }
     @sync(Complex)
     get complexVal() { return this._complexVal }
@@ -54,6 +57,7 @@ class ADataClass implements IAutoSyncable{
     set numval(v) { this._numval = v }
     set complexVal(v) { this._complexVal = v }
     set val(v) { this._val = v }
+    set stringval(x) {this._stringval = x}
 
     constructor() {
         this._numval = 1
@@ -92,7 +96,7 @@ describe("auto sync should setup the required fields on the prototype", () => {
         expect(complexvalP.allowLateBinding).to.eql(false)
 
         expect(stringvalP).to.have.keys("propName", "type", "allowLateBinding")
-        expect(stringvalP.propName).to.eql("_stringval")
+        expect(stringvalP.propName).to.eql("stringval")
         expect(stringvalP.type).to.eql(PRIMITIVE)
         expect(stringvalP.allowLateBinding).to.eql(false)
 
@@ -174,4 +178,121 @@ describe("creating sync data from given objects", () => {
         const syncData = createSyncData(item)
         expect(syncData).to.eql([realMemberResult, imaginaryMemberResult])
     })
+})
+
+describe("test synchronization of two complex values", () => {
+    it("complex values should mirror each other after sync", () => {
+        const c1 = new Complex()
+        c1.real = 7
+        const c2 = new Complex()
+        // before sync
+        expect(c1.real).to.eq(7)
+        expect(c2.real).to.eq(0)
+
+        c2.syncFrom(c1.toSyncData())
+
+        // after sync
+        expect(c1.real).to.eq(7)
+        expect(c2.real).to.eq(7)
+    })
+
+    it("complex data should be mirrored using JSON", () => {
+        const c1 = new Complex()
+        c1.real = 7
+        const c2 = new Complex()
+        const c1JSON = JSON.stringify(c1.toSyncData())
+        c2.syncFrom(JSON.parse(c1JSON))
+        expect(c1.real).to.eq(7)
+        expect(c2.real).to.eq(7)
+    })
+})
+
+describe("test sync of types that contain non primitive, sync-annotated, fields", () => {
+    it("complex fields of data class should be identical", () => {
+        const a1 = new ADataClass()
+        const a2 = new ADataClass()
+        a1.complexVal.real = 22
+        a1.complexVal.imaginary = 8
+        const aVal = a1.complexVal.getSum()
+        expect(aVal).to.not.eql(a2.complexVal.getSum())
+
+        // sync 
+        a2.syncFrom(a1.toSyncData())
+        expect(aVal).to.eql(a2.complexVal.getSum())
+
+        // a2.complexVal and a1.complexVal are synced,  however they are two different objects
+        a2.complexVal.imaginary = 2
+        expect(a1.complexVal.imaginary).to.not.eql(2)
+
+    })
+    it("complex fields of data class should be identical after sync with json, methods should also be callable on both objects", () => {
+        const a1 = new ADataClass()
+        const a2 = new ADataClass()
+        a1.complexVal.real = 22
+        a1.complexVal.imaginary = 8
+        const aVal = a1.complexVal.getSum()
+        expect(aVal).to.not.eql(a2.complexVal.getSum())
+
+        // sync 
+        const json = JSON.stringify(a1.toSyncData())
+        a2.syncFrom(JSON.parse(json))
+        expect(aVal).to.eql(a2.complexVal.getSum())
+
+        // a2.complexVal and a1.complexVal are synced,  however they are two different objects
+        a2.complexVal.imaginary = 2
+        expect(a1.complexVal.imaginary).to.not.eql(2)
+
+    })
+    it("test late binding of cyclic references", () => {
+        @autoSync(syncProvider)
+        class X implements IAutoSyncable<any> {
+            _someX : ?X
+            @sync(LATE_BIND)
+            get x() { return this._someX}
+            set x(x) { this._someX = x}
+            @sync(PRIMITIVE)
+            get num() {return this._n}
+            set num(x) {this._n=x}
+            _n: number 
+
+            constructor() {
+                this._someX = undefined
+                this._n = 0
+                lateBindMember(this, "x", X)  // always the name of the getter
+            }
+
+            syncFrom(data : any) { return DECORATED }
+            toSyncData() : any { return DECORATED }
+            isSyncInProgress() : boolean { return DECORATED }
+        }
+
+        const obj1 = new X()
+        obj1.num = 1020
+        const inner = new X()
+        inner.num = 27
+        obj1.x = inner
+        const otherObj = new X()
+        otherObj.syncFrom(obj1.toSyncData())
+
+        expect(obj1.num).to.eq(otherObj.num)
+        //$FlowFixMe
+        expect(obj1.x.num).to.eq(otherObj.x.num)
+
+        // before sync
+        // obj1 <NUM 27>
+        //  |-> inner <NUM 1020>
+
+        // otherObj <NUM 0>
+        //  |-> undefined
+
+        // after sync
+        // obj1 <NUM 27>
+        //  |-> inner <NUM 1020>  <====== |
+        //                                | Objects are equal but not shared
+        // otherObj <NUM 27>              | i.e otherObj.num = -1 wont change obj1
+        //  |-> inner <NUM 1020>  =====>  |
+
+
+    })
+
 })
