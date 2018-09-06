@@ -67,6 +67,8 @@ export function autoSync(provider?: ISyncProvider): Function {
             if(provider) {
                 provider.registerType(ClassReference.name, ClassReference)
             }
+        } else {
+            throw new Error("Type " + ClassReference.name + " must implement ISyncable")
         }
 
         return ClassReference

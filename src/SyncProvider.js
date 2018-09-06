@@ -24,6 +24,8 @@ export class SyncProvider implements ISyncProvider {
         // FIXME: Is order guaranteed when sending ???
         if (this.ctors[name])
             return new this.ctors[name](...args)
+        else 
+            throw new Error("There is no ctor with the name " + name + " within the sync provider ")
     }
 
 }
