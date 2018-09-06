@@ -7,7 +7,7 @@ Chai.use(require("chai-things"))
 
 import { describe, it, before } from "mocha"
 
-import{sync, PRIMITIVE, SyncProvider, autoSync, ISyncable, createSyncData, DECORATED, IAutoSyncable, isSyncable, isSyncableType, LATE_BIND, lateBindMember} from "../src"
+import{sync, PRIMITIVE, SyncProvider, autoSync, ISyncable, createSyncData, DECORATED, IAutoSyncable, isSyncable, isSyncableType, LATE_BIND, lateBindMember, declareSyncable} from "../src"
 
 const syncProvider = new SyncProvider()
 
@@ -64,6 +64,42 @@ class ADataClass implements IAutoSyncable{
         this._stringval = "hello "
         this._complexVal = new Complex()
         this._val = "dont sync this"
+    }
+
+    syncFrom(data : any) { return DECORATED }
+    toSyncData() : any { return DECORATED }
+    isSyncInProgress() : boolean { return DECORATED }
+
+}
+
+class AImperativeDataClass implements IAutoSyncable {
+
+    _numval: number            // full sync with setter
+    _stringval: string         // string val without setter sync
+    _complexVal: Complex       // complex type
+    _val: string               // will not be synced
+
+    get numval() { return this._numval }
+    get stringval() { return this._stringval }
+    get complexVal() { return this._complexVal }
+    get val() { return this._val }
+
+    set numval(v) { this._numval = v }
+    set complexVal(v) { this._complexVal = v }
+    set val(v) { this._val = v }
+    set stringval(x) {this._stringval = x}
+
+    constructor() {
+        this._numval = 1
+        this._stringval = "hello "
+        this._complexVal = new Complex()
+        this._val = "dont sync this"
+
+        declareSyncable(this, syncProvider, (defineSyncableProp) => {
+            defineSyncableProp("numval", PRIMITIVE)
+            defineSyncableProp("stringval", PRIMITIVE),
+            defineSyncableProp("complexVal", Complex)
+        })
     }
 
     syncFrom(data : any) { return DECORATED }
@@ -277,7 +313,6 @@ describe("test sync of types that contain non primitive, sync-annotated, fields"
         expect(obj1.num).to.eq(otherObj.num)
         //$FlowFixMe
         expect(obj1.x.num).to.eq(otherObj.x.num)
-
         // before sync
         // obj1 <NUM 27>
         //  |-> inner <NUM 1020>
@@ -295,4 +330,42 @@ describe("test sync of types that contain non primitive, sync-annotated, fields"
 
     })
 
+})
+
+describe("test sync of types that contain non primitive, explicitly declared fields", () => {
+    it("complex fields of data class should be identical", () => {
+        const a1 = new AImperativeDataClass()
+        const a2 = new AImperativeDataClass()
+        a1.complexVal.real = 22
+        a1.complexVal.imaginary = 8
+        const aVal = a1.complexVal.getSum()
+        expect(aVal).to.not.eql(a2.complexVal.getSum())
+
+        // sync 
+        a2.syncFrom(a1.toSyncData())
+        expect(aVal).to.eql(a2.complexVal.getSum())
+
+        // a2.complexVal and a1.complexVal are synced,  however they are two different objects
+        a2.complexVal.imaginary = 2
+        expect(a1.complexVal.imaginary).to.not.eql(2)
+
+    })
+    it("complex fields of data class should be identical after sync with json, methods should also be callable on both objects", () => {
+        const a1 = new AImperativeDataClass()
+        const a2 = new AImperativeDataClass()
+        a1.complexVal.real = 22
+        a1.complexVal.imaginary = 8
+        const aVal = a1.complexVal.getSum()
+        expect(aVal).to.not.eql(a2.complexVal.getSum())
+
+        // sync 
+        const json = JSON.stringify(a1.toSyncData())
+        a2.syncFrom(JSON.parse(json))
+        expect(aVal).to.eql(a2.complexVal.getSum())
+
+        // a2.complexVal and a1.complexVal are synced,  however they are two different objects
+        a2.complexVal.imaginary = 2
+        expect(a1.complexVal.imaginary).to.not.eql(2)
+
+    })
 })

@@ -8,7 +8,7 @@ type LateBind = "LATE_BIND"
 type Primitve = "PRIMITIVE"
 export const PRIMITIVE : Primitve = "PRIMITIVE"
 export const LATE_BIND : LateBind = "LATE_BIND"
-
+export type AcceptableSyncVals = LateBind | Primitve | ISyncable<mixed> 
 
 /**
  * @example
@@ -20,7 +20,7 @@ export const LATE_BIND : LateBind = "LATE_BIND"
  * }
  * this writes to the underlying _value when syncing.
  */
-export function sync(type? : ISyncable<mixed> | Primitve | LateBind, attrName?: string) {
+export function sync(type? : AcceptableSyncVals, attrName?: string) {
     // decorator to indicate an attribute can be synced
     return function decorator(target: any, key: any, descriptor: any) {
         if (!target.syncItems)
@@ -35,31 +35,34 @@ export const syncPrimitive = sync(PRIMITIVE)
 
 export const DECORATED: any = undefined
 
+export function autoImplementSyncable(prototype : any) {
+    const define = (name : string, func : Function) => {
+        const desc = Object.getOwnPropertyDescriptor(prototype, name)
+        if (desc) {
+            desc.value = func
+            Object.defineProperty(prototype, name, desc);
+        }
+    } 
+
+    define("syncFrom", function(data) {
+            this.$SYNC_IN_PROGRESS = true;
+            syncTo(this, data)
+            this.$SYNC_IN_PROGRESS = false
+    })
+
+    define("toSyncData", function() {
+        return createSyncData(this)
+        
+    })
+
+    define("isSyncInProgress", function() {
+        return this.$SYNC_IN_PROGRESS
+    })
+}
 
 export function autoSync(provider?: ISyncProvider): Function {
     return function (ClassReference: Function): Function {
-        const define = (name : string, func : Function) => {
-            const desc = Object.getOwnPropertyDescriptor(ClassReference.prototype, name)
-            if (desc) {
-                desc.value = func
-                Object.defineProperty(ClassReference.prototype, name, desc);
-            }
-        } 
-
-        define("syncFrom", function(data) {
-                this.$SYNC_IN_PROGRESS = true;
-                syncTo(this, data)
-                this.$SYNC_IN_PROGRESS = false
-        })
-
-        define("toSyncData", function() {
-            return createSyncData(this)
-            
-        })
-
-        define("isSyncInProgress", function() {
-            return this.$SYNC_IN_PROGRESS
-        })
+        autoImplementSyncable(ClassReference.prototype)
 
         ClassReference.prototype.syncProvider = provider
 
