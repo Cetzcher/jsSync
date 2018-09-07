@@ -19,3 +19,6 @@ export default {
     provider: Provider,
     imperative: Imperative
 }
+
+export { ISyncable, IAutoSyncable } from "./Sync"
+export { ISyncProvider } from "./SyncProvider"

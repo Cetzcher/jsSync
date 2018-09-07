@@ -7,7 +7,7 @@ import { ISyncProvider } from "./SyncProvider"
 import { autoImplementSyncable, LATE_BIND } from "./SyncDecorators";
 import type {AcceptableSyncVals} from "./SyncDecorators"
 
-type DefineProperty =  (name: string, type: AcceptableSyncVals) => void
+export type DefineProperty =  (name: string, type: AcceptableSyncVals) => void
 type DefinePropertyCallback = (defineProperty: DefineProperty) => void
 
 /**
