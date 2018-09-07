@@ -7,7 +7,10 @@
     "flow": "flow",
     "babel": "babel",
     "build": "babel src/ -d lib/",
-    "test": "mocha --require babel-core/register ./test/**/*.spec.js"
+    "test": "mocha --require babel-core/register ./test/**/*.spec.js",
+    "prepack": "npm run prepack:babel && npm run prepack:flow",
+    "prepack:babel": "babel src/ -d lib",
+    "prepack:flow": "flow-copy-source src lib"
   },
   "repository": {
     "type": "git",
@@ -26,6 +29,9 @@
       "flow"
     ]
   },
+  "files": [
+    "lib"
+  ],
   "author": "Pierre Rieger",
   "license": "ISC",
   "bugs": {
@@ -39,6 +45,7 @@
     "chai": "^4.1.2",
     "chai-things": "^0.2.0",
     "flow-bin": "^0.80.0",
+    "flow-copy-source": "^2.0.2",
     "mocha": "^5.2.0"
   }
 }
