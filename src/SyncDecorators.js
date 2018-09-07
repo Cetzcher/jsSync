@@ -1,14 +1,14 @@
-import { syncTo, createSyncData, isSyncableType, ISyncable } from "./Sync";
-import { ISyncProvider, SyncProvider } from "./SyncProvider";
-
 // @flow
+
+import { syncTo, createSyncData, isSyncableType, ISyncable, IAutoSyncable } from "./Sync";
+import { ISyncProvider, SyncProvider } from "./SyncProvider";
 
 // declare this as the type
 type LateBind = "LATE_BIND"
 type Primitive = "PRIMITIVE"
 export const PRIMITIVE : Primitive = "PRIMITIVE"
 export const LATE_BIND : LateBind = "LATE_BIND"
-export type AcceptableSyncVals = LateBind | Primitive | ISyncable<mixed> 
+export type AcceptableSyncVals = LateBind | Primitive | Class<ISyncable>
 
 /**
  * decorates class functions, for example when applying the decorator to a getter like:

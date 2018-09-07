@@ -1,5 +1,9 @@
 //@flow
-import { ISyncable, ISyncProvider, isSyncable } from ".";
+
+import Sync from "."
+import { ISyncable } from "./Sync"
+import { ISyncProvider } from "./SyncProvider"
+
 import { autoImplementSyncable, LATE_BIND } from "./SyncDecorators";
 import type {AcceptableSyncVals} from "./SyncDecorators"
 
@@ -32,21 +36,28 @@ type DefinePropertyCallback = (defineProperty: DefineProperty) => void
  *  ...
  * }
  */
-export function declareSyncable<T>(obj: ISyncable<T>, syncProvider: ISyncProvider, defineProperty: DefinePropertyCallback): void {
+export function declareSyncable(obj: Object, syncProvider: ISyncProvider, defineProperty: DefinePropertyCallback): void {
     const prototype = Object.getPrototypeOf(obj)
+    if(!prototype) 
+        throw new Error("could not get prototype of object")
     // check failure conditions
-    if(!isSyncable(obj))
-        throw new Error("the object must be a syncable"  + prototype.name)
+    if(!Sync.util.isSyncable(obj))
+        throw new Error("the object must be a syncable"  + String(prototype))
     
     // check if prototype does already have syncitems / syncProvider
+    //$FlowFixMe
     if(prototype.syncItems && prototype.syncProvider) 
         return
-    
+
+    //$FlowFixMe    
     prototype.syncItems = {}
+
+    //$FlowFixMe    
     prototype.syncProvider = syncProvider
     autoImplementSyncable(prototype)  // implements the methods on the syncable
 
     const _defPropFunc : DefineProperty = (name : string, type: AcceptableSyncVals) => {
+        //$FlowFixMe        
         prototype.syncItems[name] = {propName: name, type: type, allowLateBinding: type === LATE_BIND}
     }
     

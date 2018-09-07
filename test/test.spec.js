@@ -7,12 +7,17 @@ Chai.use(require("chai-things"))
 
 import { describe, it, before } from "mocha"
 
-import{sync, PRIMITIVE, SyncProvider, autoSync, ISyncable, createSyncData, DECORATED, IAutoSyncable, isSyncable, isSyncableType, LATE_BIND, lateBindMember, declareSyncable} from "../src"
-
+import Sync from "../src"
+const {createSyncData, isSyncable, isSyncableType, lateBindMember, syncListItems, syncTo} = Sync.util
+const { SyncProvider } = Sync.provider
+const {autoImplementSyncable, autoSync, sync, DECORATED, LATE_BIND, PRIMITIVE} = Sync.decorator
+const { declareSyncable } = Sync.imperative
+import { IAutoSyncable, ISyncable } from "../src/Sync"
+ 
 const syncProvider = new SyncProvider()
 
 @autoSync(syncProvider)
-class Complex implements IAutoSyncable<any> {
+class Complex implements IAutoSyncable {
     _real: number
     _imaginary: number
 
@@ -166,7 +171,7 @@ describe("SyncProvider should be able to create instances of ADataClass and Comp
         expect(syncProvider.registerType.bind(syncProvider,  "some name", Number)).to.throw()
     })
     it("adding a new type should work", () => {
-        class X implements IAutoSyncable<any> {
+        class X implements IAutoSyncable {
             syncFrom(data : any) { return DECORATED }
             toSyncData() : any { return DECORATED }
             isSyncInProgress() : boolean { return DECORATED }
@@ -281,7 +286,7 @@ describe("test sync of types that contain non primitive, sync-annotated, fields"
     })
     it("test late binding of cyclic references", () => {
         @autoSync(syncProvider)
-        class X implements IAutoSyncable<any> {
+        class X implements IAutoSyncable{
             _someX : ?X
             @sync(LATE_BIND)
             get x() { return this._someX}

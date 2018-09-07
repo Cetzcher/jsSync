@@ -1,7 +1,8 @@
+// @flow
+
 import { ISyncProvider } from "./SyncProvider";
 import { PRIMITIVE, LATE_BIND } from "./SyncDecorators";
 
-// @flow
 
 /**
  * Provides utility functions for syncing objects automagically (see examples in the tests for more information)
@@ -29,12 +30,12 @@ import { PRIMITIVE, LATE_BIND } from "./SyncDecorators";
 /**
  * Interface for Syncable data
  */
-export interface ISyncable<T : Object> {
-    syncFrom(data: ?T): void;
-    toSyncData(): ?T;
+export interface ISyncable {
+    syncFrom(data: ?Object): void;
+    toSyncData(): ?Object;
 }
 
-export interface IAutoSyncable<T: Object> extends ISyncable<T> {
+export interface IAutoSyncable extends ISyncable {
     isSyncInProgress(): boolean;
 }
 
@@ -56,7 +57,7 @@ export function isSyncableType(type: Class<any>) {
 }
 
 
-type SyncStructure = { prop: string, value: mixed }
+type SyncStructure = { prop: string, value: any }
 /**
  * Creates data akin to JSON.parse from any object that is declared as syncable
  * @param {Object} aObject 
@@ -120,7 +121,7 @@ export function syncTo(obj: Object, syncData: SyncStructure[]): void {
                 if(!ctorName)
                     throw new Error("item name is not a function i.e. not a ctor given type was:" + itemType)
                 // TODO: consider passing the data to the ctro OR calling sync afterwards
-                const objInstance : ISyncable<any> = syncProvider.create(ctorName)
+                const objInstance : ISyncable = syncProvider.create(ctorName)
                 // if we have the full object i.e. elemValue is an object that satisfies the syncable interface
                 // and therefore has the necessary methods then we can use them directly
                 // however if not then we pass the dict to the sync 
@@ -159,7 +160,7 @@ export function syncTo(obj: Object, syncData: SyncStructure[]): void {
  * @param {string} name the name of the member 
  * @param {Function} type a constructor to a Syncable object 
  */
-export function lateBindMember<T : Object>(obj: Object, name : string, type: Class<ISyncable<T>>) {
+export function lateBindMember<T : Object>(obj: Object, name : string, type: Class<ISyncable>) {
     const proto = Object.getPrototypeOf(obj)
     if(!proto.syncItems || !isSyncable(obj))
         throw new Error("Object is not syncable, is it annotated with @autoSync?")
@@ -181,7 +182,7 @@ export function lateBindMember<T : Object>(obj: Object, name : string, type: Cla
 /**
  * syncs all items of a list to another itme
  */
-export function syncListItems<T : Object>(authority: ISyncable<T>, clients: ISyncable<T>[]) {
+export function syncListItems<T : Object>(authority: ISyncable, clients: ISyncable[]) {
     const syncData = authority.toSyncData()
     clients.forEach(client => {
         if (client !== authority)
