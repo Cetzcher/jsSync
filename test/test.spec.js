@@ -168,6 +168,7 @@ describe("SyncProvider should be able to create instances of ADataClass and Comp
         expect(f).to.throw()
     })
     it("when adding a type to the syncProvider that is not syncable the provider should fail", () => {
+        //$FlowFixMe
         expect(syncProvider.registerType.bind(syncProvider,  "some name", Number)).to.throw()
     })
     it("adding a new type should work", () => {

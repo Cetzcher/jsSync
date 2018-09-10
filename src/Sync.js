@@ -120,7 +120,6 @@ export function syncTo(obj: Object, syncData: SyncStructure[]): void {
                 const ctorName = itemType.name
                 if(!ctorName)
                     throw new Error("item name is not a function i.e. not a ctor given type was:" + itemType)
-                // TODO: consider passing the data to the ctro OR calling sync afterwards
                 const objInstance : ISyncable = syncProvider.create(ctorName)
                 // if we have the full object i.e. elemValue is an object that satisfies the syncable interface
                 // and therefore has the necessary methods then we can use them directly

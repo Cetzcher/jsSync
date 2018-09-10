@@ -1,8 +1,10 @@
+// @flow
+
 import { isSyncableType, ISyncable } from "./Sync";
 
 export interface ISyncProvider {
     registerType(name: string, ctor: Function): void;
-    create(name: string, ...args: any): mixed;
+    create(name: string, ...args: any): ISyncable;
 }
 
 /**
@@ -10,25 +12,28 @@ export interface ISyncProvider {
  */
 export class SyncProvider implements ISyncProvider {
 
-    ctors: { [key: string]: Function }
+    ctors: { [key: string]: Class<ISyncable> }
 
     constructor() {
         this.ctors = {}
     }
 
-    registerType(name: string, ctor: Class<ISyncable<any>>): void {
-        if(isSyncableType(ctor))
+    registerType(name: string, ctor: Class<ISyncable>): void {
+        if (isSyncableType(ctor))
             this.ctors[name] = ctor
-        else 
+        else
             throw new Error("the type with name " + name + " is not implementing the ISyncable interface ")
     }
 
-    create(name: string, ...args: any): ISyncable<any> {
+    // TODO: fix the type here
+    create(name: string, ...args: any): ISyncable {
         // FIXME: Is order guaranteed when sending ???
-        if (this.ctors[name])
-            return new this.ctors[name](...args)
-        else 
+        if (this.ctors[name]) {
+            const ctor : any = this.ctors[name]
+            return new ctor(...args)
+        } else {
             throw new Error("There is no ctor with the name " + name + " within the sync provider ")
+        }
     }
 
 }
