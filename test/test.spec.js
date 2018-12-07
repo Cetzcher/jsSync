@@ -113,23 +113,71 @@ class AImperativeDataClass implements IAutoSyncable {
 
 }
 
-// describe("test", () => {
-//     it("test", () => {
-//         const a1 = new ADataClass()
-//         const a2 = new ADataClass()
-//         a1.complexVal.real = 22
-//         a1.complexVal.imaginary = 17
-//         a1.stringval = "a1"
-//         console.log("A1\n", a1)
-//         console.log("A1.toSyncData()\n", a1.toSyncData())
-//         //sync
-//         a2.syncFrom(a1.toSyncData())
-//         console.log("A1\n", a1)
-//         console.log("A2\n", a2)
+@autoSync(syncProvider)
+class ComplexArray implements IAutoSyncable {
+    _real: number[]
+    _imaginary: number[]
+
+    @sync(PRIMITIVE)
+    get real() { return this._real }
+    @sync(PRIMITIVE)
+    get imaginary() { return this._imaginary }
+
+    set real(r: number[]) { this._real = r }
+    set imaginary(i: number[]) { this._imaginary = i }
+
+    getSum() { return this.real.reduce((a, b) => a + b) + this.imaginary.reduce((a, b) => a + b) }
+
+    constructor() {
+        this.imaginary = []
+        this.real = []
+    }
+
+    syncFrom(data: any) { return DECORATED }
+    toSyncData(): any { return DECORATED }
+    isSyncInProgress(): boolean { return DECORATED }
+
+}
 
 
-//     })
-// })
+@autoSync(syncProvider)
+class SyncNonPrimitveArrays implements IAutoSyncable {
+    _arr: Complex[]
+    _x: number
+
+    @sync(PRIMITIVE)
+    get x() { return this._x }
+    @sync(PRIMITIVE)
+    get arr() { return this._arr }
+
+    set x(r: number) { this._x = r }
+    set arr(i: Complex[]) { this._arr = i }
+
+    constructor() {
+        this._arr = []
+        this._x = 1
+    }
+
+    syncFrom(data: any) { return DECORATED }
+    toSyncData(): any { return DECORATED }
+    isSyncInProgress(): boolean { return DECORATED }
+
+}
+
+describe("test", () => {
+    it("test", () => {
+        const ca = new ComplexArray()
+        ca.imaginary = [2, 3, 5]
+        ca.real = [3, 7, 8]
+        const ca2 = new ComplexArray()
+        ca2.real = [0, 0, 0]
+        const sData = ca.toSyncData()
+        console.log(sData)
+
+
+    })
+})
+
 
 describe("auto sync should setup the required fields on the prototype", () => {
     it("all annotated getters of ADataClass should be within the prototype.syncItems member", () => {
@@ -176,7 +224,7 @@ describe("auto sync should setup the required fields on the prototype", () => {
 
 describe("SyncProvider should be able to create instances of ADataClass and Complex", () => {
     it("SyncProvider should contain ctors for Complex and ADataClass", () => {
-        expect(syncProvider.ctors).to.have.keys([ADataClass.name, Complex.name])
+        expect(syncProvider.ctors).to.have.keys([ADataClass.name, Complex.name, ComplexArray.name, SyncNonPrimitveArrays.name])
     })
     it("SyncProvider should be able to create instance of an object", () => {
         expect(syncProvider.create(Complex.name)).to.eql(new Complex())
@@ -232,8 +280,8 @@ describe("creating sync data from given objects", () => {
         //$FlowFixMe
         item.x = 3
 
-        const realMemberResult = { prop: "real", value: 21,isArray: false }
-        const imaginaryMemberResult = { prop: "imaginary", value: 7,isArray: false }
+        const realMemberResult = { prop: "real", value: 21, isArray: false }
+        const imaginaryMemberResult = { prop: "imaginary", value: 7, isArray: false }
 
         const syncData = createSyncData(item)
         expect(syncData).to.eql([realMemberResult, imaginaryMemberResult])
@@ -391,5 +439,47 @@ describe("test sync of types that contain non primitive, explicitly declared fie
         a2.complexVal.imaginary = 2
         expect(a1.complexVal.imaginary).to.not.eql(2)
 
+    })
+
+    describe("Arrays should be syncable", () => {
+        it("toSyncData should include isArray: true", () => {
+            const ca = new ComplexArray()
+            ca.imaginary = [2, 3, 5]
+            ca.real = [3, 7, 8]
+            const ca2 = new ComplexArray()
+            ca2.real = [0, 0, 0]
+            const sData = ca.toSyncData()
+            expect(sData[0]).to.have.key("isArray", "prop", "value")
+            expect(sData[1]).to.have.key("isArray", "prop", "value")
+            expect(sData[0].isArray).to.eq(true)
+            expect(sData[1].isArray).to.eq(true)
+        })
+        it("they should sync", () => {
+            const ca = new ComplexArray()
+            ca.imaginary = [2, 3, 5]
+            ca.real = [3, 7, 8]
+            const ca2 = new ComplexArray()
+            ca2.real = [0, 0, 0]
+            ca2.syncFrom(ca.toSyncData())
+            expect(ca2.real).to.deep.eq(ca.real)
+            expect(ca2.imaginary).to.deep.eq(ca.imaginary)
+        })
+        it("syncing with non primitive arrays", () => {
+            const ca = new SyncNonPrimitveArrays()
+            const ca2 = new SyncNonPrimitveArrays()
+            ca.arr = [
+                new Complex(),
+                new Complex()
+            ]
+            ca.arr[0].real = 26
+            ca.arr[1].real = 100
+            ca.arr[0].imaginary = 19
+            ca.arr[1].imaginary = 2
+            ca2.syncFrom(ca.toSyncData())
+            expect(ca.arr[0].real).to.eq(26)
+            expect(ca.arr[1].real).to.eq(100)
+            expect(ca.arr[0].imaginary).to.eq(19)
+            expect(ca.arr[1].imaginary).to.eq(2)
+        })
     })
 })

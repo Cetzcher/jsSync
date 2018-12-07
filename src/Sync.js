@@ -79,12 +79,11 @@ export function createSyncData(aObject: Object): SyncStructure[] {
             const current = items[item]
             const itemType = current.type
             let value = aObject[current.propName]
-            let isArray = false
+            let isArray = value instanceof Array
             if (itemType === LATE_BIND)
                 throw new Error("All late bound members must be bound before creating sync data")
             if (isSyncable(value)) {
-                if (value instanceof Array && value.constructor === "Array") {
-                    isArray = true
+                if (isArray) {
                     value = value.map(item => {
                         if (item.toSyncData)
                             return item.toSyncData()
@@ -96,7 +95,7 @@ export function createSyncData(aObject: Object): SyncStructure[] {
             }
             return {
                 prop: current.propName,
-                value: value,
+                value: isArray ? value.slice() : value,  // we copy the array instead of just setting it
                 isArray: isArray
             }
         }
