@@ -1,6 +1,6 @@
 //@flow
 
-import Chai, { assert, expect} from "chai"
+import Chai, { assert, expect } from "chai"
 
 Chai.should()
 Chai.use(require("chai-things"))
@@ -8,12 +8,12 @@ Chai.use(require("chai-things"))
 import { describe, it, before } from "mocha"
 
 import Sync from "../src"
-const {createSyncData, isSyncable, isSyncableType, lateBindMember, syncListItems, syncTo} = Sync.util
+const { createSyncData, isSyncable, isSyncableType, lateBindMember, syncListItems, syncTo } = Sync.util
 const { SyncProvider } = Sync.provider
-const {autoImplementSyncable, autoSync, sync, DECORATED, LATE_BIND, PRIMITIVE} = Sync.decorator
+const { autoImplementSyncable, autoSync, sync, DECORATED, LATE_BIND, PRIMITIVE } = Sync.decorator
 const { declareSyncable } = Sync.imperative
 import { IAutoSyncable, ISyncable } from "../src/Sync"
- 
+
 const syncProvider = new SyncProvider()
 
 @autoSync(syncProvider)
@@ -29,22 +29,22 @@ class Complex implements IAutoSyncable {
     set real(r) { this._real = r }
     set imaginary(i) { this._imaginary = i }
 
-    getSum() { return this.real + this.imaginary}
+    getSum() { return this.real + this.imaginary }
 
     constructor() {
         this.imaginary = 0
         this.real = 0
     }
 
-    syncFrom(data : any) { return DECORATED }
-    toSyncData() : any { return DECORATED }
-    isSyncInProgress() : boolean { return DECORATED }
+    syncFrom(data: any) { return DECORATED }
+    toSyncData(): any { return DECORATED }
+    isSyncInProgress(): boolean { return DECORATED }
 
 }
 
 // TODO: sync(TYPE, NAME) // name is broken
 @autoSync(syncProvider)
-class ADataClass implements IAutoSyncable{
+class ADataClass implements IAutoSyncable {
 
     _numval: number            // full sync with setter
     _stringval: string         // string val without setter sync
@@ -62,7 +62,7 @@ class ADataClass implements IAutoSyncable{
     set numval(v) { this._numval = v }
     set complexVal(v) { this._complexVal = v }
     set val(v) { this._val = v }
-    set stringval(x) {this._stringval = x}
+    set stringval(x) { this._stringval = x }
 
     constructor() {
         this._numval = 1
@@ -71,9 +71,9 @@ class ADataClass implements IAutoSyncable{
         this._val = "dont sync this"
     }
 
-    syncFrom(data : any) { return DECORATED }
-    toSyncData() : any { return DECORATED }
-    isSyncInProgress() : boolean { return DECORATED }
+    syncFrom(data: any) { return DECORATED }
+    toSyncData(): any { return DECORATED }
+    isSyncInProgress(): boolean { return DECORATED }
 
 }
 
@@ -92,7 +92,7 @@ class AImperativeDataClass implements IAutoSyncable {
     set numval(v) { this._numval = v }
     set complexVal(v) { this._complexVal = v }
     set val(v) { this._val = v }
-    set stringval(x) {this._stringval = x}
+    set stringval(x) { this._stringval = x }
 
     constructor() {
         this._numval = 1
@@ -103,15 +103,33 @@ class AImperativeDataClass implements IAutoSyncable {
         declareSyncable(this, syncProvider, (defineSyncableProp) => {
             defineSyncableProp("numval", PRIMITIVE)
             defineSyncableProp("stringval", PRIMITIVE),
-            defineSyncableProp("complexVal", Complex)
+                defineSyncableProp("complexVal", Complex)
         })
     }
 
-    syncFrom(data : any) { return DECORATED }
-    toSyncData() : any { return DECORATED }
-    isSyncInProgress() : boolean { return DECORATED }
+    syncFrom(data: any) { return DECORATED }
+    toSyncData(): any { return DECORATED }
+    isSyncInProgress(): boolean { return DECORATED }
 
 }
+
+// describe("test", () => {
+//     it("test", () => {
+//         const a1 = new ADataClass()
+//         const a2 = new ADataClass()
+//         a1.complexVal.real = 22
+//         a1.complexVal.imaginary = 17
+//         a1.stringval = "a1"
+//         console.log("A1\n", a1)
+//         console.log("A1.toSyncData()\n", a1.toSyncData())
+//         //sync
+//         a2.syncFrom(a1.toSyncData())
+//         console.log("A1\n", a1)
+//         console.log("A2\n", a2)
+
+
+//     })
+// })
 
 describe("auto sync should setup the required fields on the prototype", () => {
     it("all annotated getters of ADataClass should be within the prototype.syncItems member", () => {
@@ -120,7 +138,7 @@ describe("auto sync should setup the required fields on the prototype", () => {
         const sItems = p.syncItems
         expect(sItems).to.have.keys("numval", "complexVal", "stringval")
     })
-    it("test completeness of all keys of the prototype.syncItems", () =>  {
+    it("test completeness of all keys of the prototype.syncItems", () => {
         const p = ADataClass.prototype
         //$FlowFixMe
         const sItems = p.syncItems
@@ -154,7 +172,7 @@ describe("auto sync should setup the required fields on the prototype", () => {
         const provider = p.syncProvider
         expect(provider).to.exist.and.to.eql(syncProvider)
     })
-}) 
+})
 
 describe("SyncProvider should be able to create instances of ADataClass and Complex", () => {
     it("SyncProvider should contain ctors for Complex and ADataClass", () => {
@@ -169,13 +187,13 @@ describe("SyncProvider should be able to create instances of ADataClass and Comp
     })
     it("when adding a type to the syncProvider that is not syncable the provider should fail", () => {
         //$FlowFixMe
-        expect(syncProvider.registerType.bind(syncProvider,  "some name", Number)).to.throw()
+        expect(syncProvider.registerType.bind(syncProvider, "some name", Number)).to.throw()
     })
     it("adding a new type should work", () => {
         class X implements IAutoSyncable {
-            syncFrom(data : any) { return DECORATED }
-            toSyncData() : any { return DECORATED }
-            isSyncInProgress() : boolean { return DECORATED }
+            syncFrom(data: any) { return DECORATED }
+            toSyncData(): any { return DECORATED }
+            isSyncInProgress(): boolean { return DECORATED }
         }
         syncProvider.registerType(X.name, X)
         expect(syncProvider.create(X.name)).to.eql(new X())
@@ -190,7 +208,7 @@ describe("test wether types are syncable", () => {
         expect(isSyncableType(Complex)).to.eqls(true)
     })
     it("test unsyncable type", () => {
-        class Unsycable {}
+        class Unsycable { }
         expect(isSyncableType(Unsycable)).to.eqls(false)
     })
 })
@@ -202,8 +220,8 @@ describe("creating sync data from given objects", () => {
         item.imaginary = 7
         const syncData = createSyncData(item)
 
-        const realMemberResult = {prop: "real", value: 21}
-        const imaginaryMemberResult = {prop: "imaginary", value: 7}
+        const realMemberResult = { prop: "real", value: 21, isArray: false }
+        const imaginaryMemberResult = { prop: "imaginary", value: 7, isArray: false }
 
         expect(syncData).to.eql([realMemberResult, imaginaryMemberResult])
     })
@@ -214,8 +232,8 @@ describe("creating sync data from given objects", () => {
         //$FlowFixMe
         item.x = 3
 
-        const realMemberResult = {prop: "real", value: 21}
-        const imaginaryMemberResult = {prop: "imaginary", value: 7}
+        const realMemberResult = { prop: "real", value: 21,isArray: false }
+        const imaginaryMemberResult = { prop: "imaginary", value: 7,isArray: false }
 
         const syncData = createSyncData(item)
         expect(syncData).to.eql([realMemberResult, imaginaryMemberResult])
@@ -287,15 +305,15 @@ describe("test sync of types that contain non primitive, sync-annotated, fields"
     })
     it("test late binding of cyclic references", () => {
         @autoSync(syncProvider)
-        class X implements IAutoSyncable{
-            _someX : ?X
+        class X implements IAutoSyncable {
+            _someX: ?X
             @sync(LATE_BIND)
-            get x() { return this._someX}
-            set x(x) { this._someX = x}
+            get x() { return this._someX }
+            set x(x) { this._someX = x }
             @sync(PRIMITIVE)
-            get num() {return this._n}
-            set num(x) {this._n=x}
-            _n: number 
+            get num() { return this._n }
+            set num(x) { this._n = x }
+            _n: number
 
             constructor() {
                 this._someX = undefined
@@ -303,9 +321,9 @@ describe("test sync of types that contain non primitive, sync-annotated, fields"
                 lateBindMember(this, "x", X)  // always the name of the getter
             }
 
-            syncFrom(data : any) { return DECORATED }
-            toSyncData() : any { return DECORATED }
-            isSyncInProgress() : boolean { return DECORATED }
+            syncFrom(data: any) { return DECORATED }
+            toSyncData(): any { return DECORATED }
+            isSyncInProgress(): boolean { return DECORATED }
         }
 
         const obj1 = new X()
