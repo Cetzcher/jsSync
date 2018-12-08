@@ -8,9 +8,9 @@
     "babel": "babel",
     "build": "babel src/ -d lib/",
     "test": "mocha --require babel-core/register ./test/**/*.spec.js",
-    "prepack": "npm run prepack:babel && npm run prepack:flow",
-    "prepack:babel": "babel src/ -d lib",
-    "prepack:flow": "flow-copy-source src lib"
+    "_prepack": "npm run _prepack:babel && npm run _prepack:flow",
+    "_prepack:babel": "babel src/ -d lib",
+    "_prepack:flow": "flow-copy-source src lib"
   },
   "repository": {
     "type": "git",
